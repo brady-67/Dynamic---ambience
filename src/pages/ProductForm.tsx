@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Loader2, Save, Trash2, X } from 'lucide-react';
+import { ImagePlus, Loader2, Save, Trash2, X } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/types';
 
 export type ProductDraft = Omit<Product, 'id'> & { id?: string };
@@ -56,14 +57,77 @@ export default function ProductForm({
     initial ? { ...initial } : { ...emptyDraft },
   );
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const set = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file.');
+      return;
+    }
+    setUploadError(null);
+    setUploading(true);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from('product-images')
+      .upload(path, file, { cacheControl: '3600', upsert: false });
+    if (uploadErr) {
+      setUploadError(uploadErr.message);
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+    set('image_url', data.publicUrl);
+    setUploading(false);
+  };
 
   const isValid = draft.name.trim() && draft.image_url.trim() && draft.price >= 0;
 
   return (
     <div className="rounded-2xl bg-sand-50 p-6 ring-1 ring-ink-200 sm:p-8">
+      <div className="mb-5">
+        {field(
+          'Product photo',
+          <div className="flex items-start gap-4">
+            <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-sand-100 ring-1 ring-ink-200">
+              {draft.image_url ? (
+                <img src={draft.image_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <ImagePlus className="h-6 w-6 text-ink-300" />
+              )}
+            </div>
+            <div className="flex-1">
+              <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink-700 ring-1 ring-ink-200 hover:bg-sand-100">
+                {uploading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ImagePlus className="h-4 w-4" />
+                )}
+                {uploading ? 'Uploading...' : 'Upload photo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => handleFile(e.target.files?.[0])}
+                />
+              </label>
+              {uploadError && <p className="mt-1.5 text-xs text-clay-600">{uploadError}</p>}
+              <input
+                className={`${inputClass} mt-2`}
+                value={draft.image_url}
+                onChange={(e) => set('image_url', e.target.value)}
+                placeholder="Or paste an image URL"
+              />
+            </div>
+          </div>,
+        )}
+      </div>
       <div className="grid gap-5 sm:grid-cols-2">
         {field(
           'Name',
@@ -72,15 +136,6 @@ export default function ProductForm({
             value={draft.name}
             onChange={(e) => set('name', e.target.value)}
             placeholder="Ramtons 20L Digital Microwave"
-          />,
-        )}
-        {field(
-          'Image URL',
-          <input
-            className={inputClass}
-            value={draft.image_url}
-            onChange={(e) => set('image_url', e.target.value)}
-            placeholder="https://images.pexels.com/..."
           />,
         )}
         {field(
