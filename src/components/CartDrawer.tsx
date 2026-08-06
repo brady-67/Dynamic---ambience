@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Plus, Minus, Trash2, ShoppingBag, Copy, Check, MessageCircle } from 'lucide-react';
 import type { CartItem } from '@/lib/types';
 
 interface CartDrawerProps {
@@ -15,12 +15,51 @@ function formatKES(n: number) {
   return 'KSh ' + n.toLocaleString('en-KE');
 }
 
+const WHATSAPP_NUMBER = '254707083807';
+const MPESA_PAYBILL = '400200';
+const MPESA_ACCOUNT = '1167432';
+const COOP_ACCOUNT = '01102088193001';
+const ACCOUNT_NAME = 'DYNAMIC AMBIENCE INTERIOR DESIGN';
+
+function CopyRow({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      // Clipboard API unavailable — user can still select and copy manually.
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-sand-100 px-4 py-3">
+      <div>
+        <p className="text-[11px] uppercase tracking-widest text-ink-500">{label}</p>
+        <p className="font-serif text-base font-semibold text-ink-950">{value}</p>
+      </div>
+      <button
+        onClick={copy}
+        aria-label={`Copy ${label}`}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-ink-600 transition-colors hover:bg-sand-50 hover:text-ink-900"
+      >
+        {copied ? <Check className="h-4 w-4 text-sage-600" /> : <Copy className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+}
+
 export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemove }: CartDrawerProps) {
+  const [step, setStep] = useState<'cart' | 'payment'>('cart');
+
   useEffect(() => {
     if (open) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      setStep('cart');
     }
     return () => {
       document.body.style.overflow = '';
@@ -28,6 +67,22 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
   }, [open]);
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  const whatsappHref = (() => {
+    const lines = items.map(
+      (i) => `• ${i.name} x${i.quantity} — ${formatKES(i.price * i.quantity)}`,
+    );
+    const message = [
+      'Hi Dynamic Ambience, I would like to confirm my order:',
+      '',
+      ...lines,
+      '',
+      `Total: ${formatKES(subtotal)}`,
+      '',
+      'I have made payment via M-Pesa / bank transfer and will share the confirmation.',
+    ].join('\n');
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  })();
 
   return (
     <>
@@ -44,7 +99,8 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
       >
         <div className="flex items-center justify-between border-b border-ink-200 px-6 py-5">
           <h3 className="flex items-center gap-2 font-serif text-xl font-medium text-ink-950">
-            <ShoppingBag className="h-5 w-5 text-clay-500" /> Your Cart
+            <ShoppingBag className="h-5 w-5 text-clay-500" />
+            {step === 'payment' ? 'Complete payment' : 'Your Cart'}
           </h3>
           <button
             onClick={onClose}
@@ -66,6 +122,64 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
               Continue shopping
             </button>
           </div>
+        ) : step === 'payment' ? (
+          <>
+            <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-600">Amount to pay</span>
+                  <span className="font-serif text-2xl font-semibold text-ink-950">
+                    {formatKES(subtotal)}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-ink-500">
+                  Pay via M-Pesa or bank transfer below, then confirm your order on WhatsApp.
+                </p>
+              </div>
+
+              <div>
+                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
+                  Lipa na M-Pesa
+                </p>
+                <div className="space-y-2">
+                  <CopyRow label="Paybill Number" value={MPESA_PAYBILL} />
+                  <CopyRow label="Account Number" value={MPESA_ACCOUNT} />
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
+                  Bank Transfer — Co-op Bank
+                </p>
+                <div className="space-y-2">
+                  <CopyRow label="Account Number" value={COOP_ACCOUNT} />
+                  <CopyRow label="Account Name" value={ACCOUNT_NAME} />
+                </div>
+              </div>
+
+              <p className="rounded-xl bg-sage-50 px-4 py-3 text-xs leading-relaxed text-sage-700">
+                After paying, tap the button below to send us your order details and payment
+                confirmation on WhatsApp — we'll verify and get your delivery scheduled.
+              </p>
+            </div>
+
+            <div className="border-t border-ink-200 px-6 py-5">
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary flex w-full items-center justify-center gap-2 bg-sage-600 hover:bg-sage-500"
+              >
+                <MessageCircle className="h-4.5 w-4.5" /> Confirm order via WhatsApp
+              </a>
+              <button
+                onClick={() => setStep('cart')}
+                className="mt-2 w-full text-center text-sm font-medium text-ink-600 transition-colors hover:text-ink-900"
+              >
+                Back to cart
+              </button>
+            </div>
+          </>
         ) : (
           <>
             <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
@@ -133,7 +247,10 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
               <p className="mt-1 text-xs text-ink-500">
                 Delivery calculated at checkout. Pay on delivery or M-Pesa.
               </p>
-              <button className="btn-primary mt-4 w-full bg-clay-500 hover:bg-clay-400">
+              <button
+                onClick={() => setStep('payment')}
+                className="btn-primary mt-4 w-full bg-clay-500 hover:bg-clay-400"
+              >
                 Checkout
               </button>
               <button
