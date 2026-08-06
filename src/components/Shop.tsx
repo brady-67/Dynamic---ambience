@@ -8,7 +8,6 @@ interface ShopProps {
   onAdd: (product: Product) => void;
 }
 
-const brands = ['All', 'Ramtons', 'Von'];
 const categories = ['All', 'Kitchen', 'Small Appliances', 'Laundry', 'Refrigeration', 'Cookware'];
 
 function formatKES(n: number) {
@@ -33,7 +32,6 @@ export default function Shop({ onAdd }: ShopProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [brand, setBrand] = useState('All');
   const [category, setCategory] = useState('All');
   const [added, setAdded] = useState<string | null>(null);
 
@@ -60,12 +58,8 @@ export default function Shop({ onAdd }: ShopProps) {
   }, []);
 
   const filtered = useMemo(
-    () =>
-      products.filter(
-        (p) =>
-          (brand === 'All' || p.brand === brand) && (category === 'All' || p.category === category),
-      ),
-    [products, brand, category],
+    () => products.filter((p) => category === 'All' || p.category === category),
+    [products, category],
   );
 
   const handleAdd = (p: Product) => {
@@ -79,34 +73,18 @@ export default function Shop({ onAdd }: ShopProps) {
       <div ref={ref} className="mx-auto max-w-7xl container-px">
         <div className={`max-w-2xl ${visible ? 'animate-fade-up' : 'reveal'}`}>
           <span className="eyebrow">Appliance shop</span>
-          <h2 className="heading mt-4 text-4xl sm:text-5xl">Ramtons & Von, delivered to your door</h2>
+          <h2 className="heading mt-4 text-4xl sm:text-5xl">Quality appliances, delivered to your door</h2>
           <p className="mt-5 text-lg text-ink-700">
-            Quality kitchen, laundry and refrigeration appliances from the brands Kenyan homes
-            trust — hand-picked to complement your new interior.
+            Kitchen, laundry and refrigeration appliances from the brands Kenyan homes trust —
+            hand-picked to complement your new interior.
           </p>
         </div>
 
         {/* Filters */}
         <div className={`mt-10 flex flex-wrap items-center gap-3 ${visible ? 'animate-fade-up [animation-delay:120ms] opacity-0' : 'reveal'}`}>
           <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-ink-500">
-            <SlidersHorizontal className="h-4 w-4" /> Brand
+            <SlidersHorizontal className="h-4 w-4" /> Category
           </span>
-          {brands.map((b) => (
-            <button
-              key={b}
-              onClick={() => setBrand(b)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 ${
-                brand === b
-                  ? 'bg-ink-900 text-sand-50'
-                  : 'bg-sand-50 text-ink-700 ring-1 ring-ink-200 hover:ring-ink-400'
-              }`}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="text-xs font-medium uppercase tracking-widest text-ink-500">Category</span>
           {categories.map((c) => (
             <button
               key={c}
