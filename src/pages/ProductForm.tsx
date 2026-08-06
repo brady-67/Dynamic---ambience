@@ -7,7 +7,7 @@ export type ProductDraft = Omit<Product, 'id'> & { id?: string };
 
 const emptyDraft: ProductDraft = {
   name: '',
-  brand: 'Ramtons',
+  brand: '',
   category: 'Kitchen',
   price: 0,
   old_price: null,
@@ -19,7 +19,6 @@ const emptyDraft: ProductDraft = {
   description: '',
 };
 
-const brandOptions = ['Ramtons', 'Von'];
 const categoryOptions = ['Kitchen', 'Small Appliances', 'Laundry', 'Refrigeration', 'Cookware'];
 
 interface ProductFormProps {
@@ -140,17 +139,12 @@ export default function ProductForm({
         )}
         {field(
           'Brand',
-          <select
+          <input
             className={inputClass}
             value={draft.brand}
             onChange={(e) => set('brand', e.target.value)}
-          >
-            {brandOptions.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>,
+            placeholder="e.g. Ramtons"
+          />,
         )}
         {field(
           'Category',
