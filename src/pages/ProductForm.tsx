@@ -92,7 +92,7 @@ export default function ProductForm({
       <div className="mb-5">
         {field(
           'Product photo',
-          <div className="flex items-start gap-4">
+          <div className="flex flex-wrap items-start gap-4">
             <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-xl bg-sand-100 ring-1 ring-ink-200">
               {draft.image_url ? (
                 <img src={draft.image_url} alt="" className="h-full w-full object-cover" />
@@ -100,7 +100,7 @@ export default function ProductForm({
                 <ImagePlus className="h-6 w-6 text-ink-300" />
               )}
             </div>
-            <div className="flex-1">
+            <div className="min-w-[180px] flex-1">
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-ink-700 ring-1 ring-ink-200 hover:bg-sand-100">
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -238,11 +238,11 @@ export default function ProductForm({
         </label>
       </div>
 
-      <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-ink-200 pt-5">
+      <div className="mt-7 flex flex-col gap-4 border-t border-ink-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           {initial && onDelete && (
             confirmingDelete ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm text-clay-600">Delete this product?</span>
                 <button
                   onClick={onDelete}
@@ -262,24 +262,24 @@ export default function ProductForm({
             ) : (
               <button
                 onClick={() => setConfirmingDelete(true)}
-                className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-clay-600 ring-1 ring-clay-200 hover:bg-clay-50"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-clay-600 ring-1 ring-clay-200 hover:bg-clay-50 sm:w-auto sm:justify-start sm:py-1.5"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </button>
             )
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
           <button
             onClick={onCancel}
-            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-ink-600 hover:text-ink-900"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-medium text-ink-600 hover:text-ink-900 sm:py-2"
           >
             <X className="h-4 w-4" /> Cancel
           </button>
           <button
             onClick={() => isValid && onSave(draft)}
             disabled={!isValid || saving}
-            className="inline-flex items-center gap-2 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-sand-50 transition-colors hover:bg-clay-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-3 text-sm font-medium text-sand-50 transition-colors hover:bg-clay-600 disabled:cursor-not-allowed disabled:opacity-50 sm:py-2.5"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {initial ? 'Save changes' : 'Add product'}
