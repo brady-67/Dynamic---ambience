@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
+  ChevronRight,
   Lock,
   Loader2,
   Package,
@@ -174,7 +175,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-sand-100">
       <header className="border-b border-ink-200 bg-sand-50">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-6 sm:py-6">
           <div>
             <a
               href="/"
@@ -182,7 +183,7 @@ export default function AdminPage() {
             >
               <ArrowLeft className="h-3.5 w-3.5" /> Back to site
             </a>
-            <h1 className="mt-1 font-serif text-3xl font-semibold text-ink-950">
+            <h1 className="mt-1 font-serif text-2xl font-semibold text-ink-950 sm:text-3xl">
               Manage listings
             </h1>
             <p className="mt-1 text-sm text-ink-600">
@@ -194,14 +195,14 @@ export default function AdminPage() {
               setCreating(true);
               setEditing(null);
             }}
-            className="inline-flex items-center gap-2 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-sand-50 transition-colors hover:bg-clay-600"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-sand-50 transition-colors hover:bg-clay-600 sm:w-auto"
           >
             <Plus className="h-4 w-4" /> Add product
           </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
         {toast && (
           <div className="mb-6 rounded-xl bg-ink-900 px-4 py-3 text-sm text-sand-50 shadow-lg">
             {toast}
@@ -232,7 +233,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        <div className="relative max-w-sm">
+        <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
           <input
             value={query}
@@ -260,71 +261,120 @@ export default function AdminPage() {
             <p className="mt-3">No products match your search.</p>
           </div>
         ) : (
-          <div className="mt-8 overflow-hidden rounded-2xl bg-sand-50 ring-1 ring-ink-200">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-sand-100 text-xs uppercase tracking-widest text-ink-500">
-                <tr>
-                  <th className="px-5 py-3">Product</th>
-                  <th className="px-5 py-3">Brand</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Price</th>
-                  <th className="px-5 py-3">Rating</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {filtered.map((p) => (
-                  <tr key={p.id} className="transition-colors hover:bg-sand-100/60">
-                    <td className="flex items-center gap-3 px-5 py-3">
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-ink-200"
-                      />
-                      <div>
-                        <p className="font-medium text-ink-900">{p.name}</p>
-                        {p.featured && (
-                          <span className="text-[11px] font-semibold uppercase tracking-wide text-clay-500">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-ink-700">{p.brand}</td>
-                    <td className="px-5 py-3 text-ink-700">{p.category}</td>
-                    <td className="px-5 py-3 text-ink-900">{formatKES(p.price)}</td>
-                    <td className="px-5 py-3 text-ink-700">
-                      <span className="inline-flex items-center gap-1">
-                        <Star className="h-3.5 w-3.5 fill-clay-400 text-clay-400" />
-                        {p.rating}
+          <>
+            {/* Mobile: stacked cards */}
+            <div className="mt-8 space-y-3 sm:hidden">
+              {filtered.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setEditing(p);
+                    setCreating(false);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-sand-50 p-3 text-left ring-1 ring-ink-200 active:bg-sand-100"
+                >
+                  <img
+                    src={p.image_url}
+                    alt={p.name}
+                    className="h-14 w-14 shrink-0 rounded-xl object-cover ring-1 ring-ink-200"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-ink-900">{p.name}</p>
+                    <p className="mt-0.5 text-xs text-ink-500">
+                      {p.brand} · {p.category}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <span className="font-serif text-sm font-semibold text-ink-950">
+                        {formatKES(p.price)}
                       </span>
-                    </td>
-                    <td className="px-5 py-3">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${
                           p.in_stock ? 'bg-sage-100 text-sage-700' : 'bg-clay-100 text-clay-700'
                         }`}
                       >
                         {p.in_stock ? 'In stock' : 'Out of stock'}
                       </span>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => {
-                          setEditing(p);
-                          setCreating(false);
-                        }}
-                        className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink-700 ring-1 ring-ink-200 hover:bg-ink-900 hover:text-sand-50"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {p.featured && (
+                        <span className="text-[11px] font-semibold uppercase tracking-wide text-clay-500">
+                          Featured
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-ink-300" />
+                </button>
+              ))}
+            </div>
+
+            {/* Tablet/desktop: table */}
+            <div className="mt-8 hidden overflow-hidden rounded-2xl bg-sand-50 ring-1 ring-ink-200 sm:block">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-sand-100 text-xs uppercase tracking-widest text-ink-500">
+                    <tr>
+                      <th className="px-5 py-3">Product</th>
+                      <th className="px-5 py-3">Brand</th>
+                      <th className="px-5 py-3">Category</th>
+                      <th className="px-5 py-3">Price</th>
+                      <th className="px-5 py-3">Rating</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink-100">
+                    {filtered.map((p) => (
+                      <tr key={p.id} className="transition-colors hover:bg-sand-100/60">
+                        <td className="flex items-center gap-3 px-5 py-3">
+                          <img
+                            src={p.image_url}
+                            alt={p.name}
+                            className="h-11 w-11 shrink-0 rounded-lg object-cover ring-1 ring-ink-200"
+                          />
+                          <div>
+                            <p className="font-medium text-ink-900">{p.name}</p>
+                            {p.featured && (
+                              <span className="text-[11px] font-semibold uppercase tracking-wide text-clay-500">
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-ink-700">{p.brand}</td>
+                        <td className="px-5 py-3 text-ink-700">{p.category}</td>
+                        <td className="px-5 py-3 text-ink-900">{formatKES(p.price)}</td>
+                        <td className="px-5 py-3 text-ink-700">
+                          <span className="inline-flex items-center gap-1">
+                            <Star className="h-3.5 w-3.5 fill-clay-400 text-clay-400" />
+                            {p.rating}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                              p.in_stock ? 'bg-sage-100 text-sage-700' : 'bg-clay-100 text-clay-700'
+                            }`}
+                          >
+                            {p.in_stock ? 'In stock' : 'Out of stock'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <button
+                            onClick={() => {
+                              setEditing(p);
+                              setCreating(false);
+                            }}
+                            className="rounded-full px-3.5 py-1.5 text-sm font-medium text-ink-700 ring-1 ring-ink-200 hover:bg-ink-900 hover:text-sand-50"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </main>
     </div>
