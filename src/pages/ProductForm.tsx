@@ -19,7 +19,19 @@ const emptyDraft: ProductDraft = {
   description: '',
 };
 
-const categoryOptions = ['Kitchen', 'Small Appliances', 'Laundry', 'Refrigeration', 'Cookware'];
+const categoryOptions = [
+  'Kitchen',
+  'Small Appliances',
+  'Laundry',
+  'Refrigeration',
+  'Cookware',
+  'Chandeliers',
+  'Washing Machine',
+  'Ramtons',
+  'Furniture',
+  'Beddings',
+  'Solar Light',
+];
 
 interface ProductFormProps {
   initial?: Product | null;
