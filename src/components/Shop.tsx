@@ -8,7 +8,20 @@ interface ShopProps {
   onAdd: (product: Product) => void;
 }
 
-const categories = ['All', 'Kitchen', 'Small Appliances', 'Laundry', 'Refrigeration', 'Cookware'];
+const categories = [
+  'All',
+  'Kitchen',
+  'Small Appliances',
+  'Laundry',
+  'Refrigeration',
+  'Cookware',
+  'Chandeliers',
+  'Washing Machine',
+  'Ramtons',
+  'Furniture',
+  'Beddings',
+  'Solar Light',
+];
 
 function formatKES(n: number) {
   return 'KSh ' + n.toLocaleString('en-KE');
