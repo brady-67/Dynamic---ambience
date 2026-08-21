@@ -7,7 +7,7 @@ import {
   normalizeKenyanPhone,
   requiredEnv,
   supabaseServerClient,
-} from '../_lib/daraja';
+} from '../_lib/daraja.js';
 
 interface StkPushBody {
   phone: string;
@@ -93,3 +93,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Unexpected error.' });
   }
+}
