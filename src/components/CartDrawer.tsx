@@ -1,5 +1,18 @@
-import { useEffect, useState } from 'react';
-import { X, Plus, Minus, Trash2, ShoppingBag, Copy, Check, MessageCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  X,
+  Plus,
+  Minus,
+  Trash2,
+  ShoppingBag,
+  Copy,
+  Check,
+  MessageCircle,
+  Smartphone,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import type { CartItem } from '@/lib/types';
 
 interface CartDrawerProps {
@@ -51,8 +64,28 @@ function CopyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+type StkState = 'idle' | 'requesting' | 'awaiting' | 'success' | 'failed' | 'timeout';
+
+function looksLikeKenyanPhone(input: string) {
+  const digits = input.replace(/\D/g, '');
+  return /^254(7|1)\d{8}$/.test(digits) || /^0(7|1)\d{8}$/.test(digits) || /^(7|1)\d{8}$/.test(digits);
+}
+
 export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemove }: CartDrawerProps) {
   const [step, setStep] = useState<'cart' | 'payment'>('cart');
+  const [showManual, setShowManual] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [stkState, setStkState] = useState<StkState>('idle');
+  const [stkError, setStkError] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<string | null>(null);
+  const pollRef = useRef<number | null>(null);
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -60,18 +93,90 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
     } else {
       document.body.style.overflow = '';
       setStep('cart');
+      setShowManual(false);
+      setStkState('idle');
+      setStkError(null);
+      setReceipt(null);
+      stopPolling();
     }
     return () => {
       document.body.style.overflow = '';
     };
   }, [open]);
 
+  useEffect(() => stopPolling, []);
+
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  const orderSummary = items.map((i) => `${i.name} x${i.quantity}`).join(', ');
+
+  const startStkPush = async () => {
+    if (!looksLikeKenyanPhone(phone)) {
+      setStkError('Enter a valid Safaricom number, e.g. 07XXXXXXXX.');
+      return;
+    }
+    setStkError(null);
+    setStkState('requesting');
+
+    try {
+      const res = await fetch('/api/mpesa/stk-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, amount: subtotal, orderSummary }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setStkState('failed');
+        setStkError(data.error || 'Could not start the M-Pesa prompt. Please try again.');
+        return;
+      }
+
+      setStkState('awaiting');
+      const checkoutRequestId = data.checkoutRequestId as string;
+      let attempts = 0;
+
+      pollRef.current = window.setInterval(async () => {
+        attempts += 1;
+        try {
+          const statusRes = await fetch(
+            `/api/mpesa/status?checkoutRequestId=${encodeURIComponent(checkoutRequestId)}`,
+          );
+          const statusData = await statusRes.json();
+
+          if (statusRes.ok && statusData.status === 'success') {
+            stopPolling();
+            setReceipt(statusData.mpesa_receipt ?? null);
+            setStkState('success');
+          } else if (statusRes.ok && statusData.status === 'failed') {
+            stopPolling();
+            setStkError(statusData.result_desc || 'Payment was not completed.');
+            setStkState('failed');
+          } else if (attempts >= 20) {
+            stopPolling();
+            setStkState('timeout');
+          }
+        } catch {
+          if (attempts >= 20) {
+            stopPolling();
+            setStkState('timeout');
+          }
+        }
+      }, 3000);
+    } catch {
+      setStkState('failed');
+      setStkError('Could not reach the payment service. Check your connection and try again.');
+    }
+  };
 
   const whatsappHref = (() => {
     const lines = items.map(
       (i) => `• ${i.name} x${i.quantity} — ${formatKES(i.price * i.quantity)}`,
     );
+    const paymentLine =
+      stkState === 'success'
+        ? `Paid via M-Pesa${receipt ? ` (Receipt: ${receipt})` : ''}.`
+        : 'I have made payment via M-Pesa / bank transfer and will share the confirmation.';
     const message = [
       'Hi Dynamic Ambience, I would like to confirm my order:',
       '',
@@ -79,7 +184,7 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
       '',
       `Total: ${formatKES(subtotal)}`,
       '',
-      'I have made payment via M-Pesa / bank transfer and will share the confirmation.',
+      paymentLine,
     ].join('\n');
     return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
   })();
@@ -132,35 +237,116 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
                     {formatKES(subtotal)}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-ink-500">
-                  Pay via M-Pesa or bank transfer below, then confirm your order on WhatsApp.
-                </p>
               </div>
 
-              <div>
-                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
-                  Lipa na M-Pesa
-                </p>
-                <div className="space-y-2">
-                  <CopyRow label="Paybill Number" value={MPESA_PAYBILL} />
-                  <CopyRow label="Account Number" value={MPESA_ACCOUNT} />
+              {stkState === 'success' ? (
+                <div className="rounded-2xl bg-sage-50 p-5 text-center">
+                  <CheckCircle2 className="mx-auto h-9 w-9 text-sage-600" />
+                  <p className="mt-3 font-serif text-lg font-semibold text-ink-950">
+                    Payment received
+                  </p>
+                  {receipt && (
+                    <p className="mt-1 text-sm text-sage-700">M-Pesa receipt: {receipt}</p>
+                  )}
+                  <p className="mt-2 text-xs text-ink-500">
+                    Send us your order on WhatsApp so we can schedule delivery.
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div>
+                  <p className="mb-2.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
+                    <Smartphone className="h-3.5 w-3.5" /> Pay with M-Pesa
+                  </p>
 
-              <div>
-                <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
-                  Bank Transfer — Co-op Bank
-                </p>
-                <div className="space-y-2">
-                  <CopyRow label="Account Number" value={COOP_ACCOUNT} />
-                  <CopyRow label="Account Name" value={ACCOUNT_NAME} />
+                  <label className="block">
+                    <span className="mb-1.5 block text-xs font-medium text-ink-600">
+                      M-Pesa phone number
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="07XX XXX XXX"
+                      disabled={stkState === 'requesting' || stkState === 'awaiting'}
+                      className="w-full rounded-xl border border-ink-200 bg-sand-50 px-3.5 py-2.5 text-sm text-ink-900 outline-none transition-colors focus:border-clay-400 focus:ring-2 focus:ring-clay-100 disabled:opacity-60"
+                    />
+                  </label>
+
+                  {stkError && (
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-clay-600">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {stkError}
+                    </p>
+                  )}
+
+                  {stkState === 'awaiting' && (
+                    <p className="mt-3 flex items-center gap-2 rounded-xl bg-sand-100 px-3.5 py-2.5 text-xs text-ink-600">
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                      Check your phone and enter your M-Pesa PIN to complete the payment...
+                    </p>
+                  )}
+
+                  {stkState === 'timeout' && (
+                    <p className="mt-2 flex items-start gap-1.5 text-xs text-clay-600">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      Didn't get the prompt, or it timed out? You can try again below.
+                    </p>
+                  )}
+
+                  <button
+                    onClick={startStkPush}
+                    disabled={stkState === 'requesting' || stkState === 'awaiting'}
+                    className="btn-primary mt-3 flex w-full items-center justify-center gap-2 bg-sage-600 hover:bg-sage-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {stkState === 'requesting' || stkState === 'awaiting' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Smartphone className="h-4 w-4" />
+                    )}
+                    {stkState === 'requesting'
+                      ? 'Sending prompt...'
+                      : stkState === 'awaiting'
+                        ? 'Waiting for payment...'
+                        : 'Send M-Pesa prompt'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowManual((v) => !v)}
+                    className="mt-3 w-full text-center text-xs font-medium text-ink-500 underline decoration-ink-300 underline-offset-2 hover:text-ink-800"
+                  >
+                    {showManual ? 'Hide paybill / bank details' : 'Prefer to pay manually instead?'}
+                  </button>
                 </div>
-              </div>
+              )}
 
-              <p className="rounded-xl bg-sage-50 px-4 py-3 text-xs leading-relaxed text-sage-700">
-                After paying, tap the button below to send us your order details and payment
-                confirmation on WhatsApp — we'll verify and get your delivery scheduled.
-              </p>
+              {showManual && stkState !== 'success' && (
+                <div className="space-y-6 border-t border-ink-200 pt-6">
+                  <div>
+                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
+                      Lipa na M-Pesa
+                    </p>
+                    <div className="space-y-2">
+                      <CopyRow label="Paybill Number" value={MPESA_PAYBILL} />
+                      <CopyRow label="Account Number" value={MPESA_ACCOUNT} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-widest text-clay-500">
+                      Bank Transfer — Co-op Bank
+                    </p>
+                    <div className="space-y-2">
+                      <CopyRow label="Account Number" value={COOP_ACCOUNT} />
+                      <CopyRow label="Account Name" value={ACCOUNT_NAME} />
+                    </div>
+                  </div>
+
+                  <p className="rounded-xl bg-sage-50 px-4 py-3 text-xs leading-relaxed text-sage-700">
+                    After paying, tap the button below to send us your order details and payment
+                    confirmation on WhatsApp — we'll verify and get your delivery scheduled.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-ink-200 px-6 py-5">
@@ -168,7 +354,7 @@ export default function CartDrawer({ open, items, onClose, onInc, onDec, onRemov
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-primary flex w-full items-center justify-center gap-2 bg-sage-600 hover:bg-sage-500"
+                className="btn-primary flex w-full items-center justify-center gap-2 bg-ink-900 hover:bg-clay-600"
               >
                 <MessageCircle className="h-4.5 w-4.5" /> Confirm order via WhatsApp
               </a>
