@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabaseServerClient } from '../_lib/daraja';
+import { supabaseServerClient } from '../_lib/daraja.js';
 
 interface CallbackMetadataItem {
   Name: string;
