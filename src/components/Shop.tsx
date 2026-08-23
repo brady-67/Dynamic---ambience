@@ -21,6 +21,9 @@ const categories = [
   'Furniture',
   'Beddings',
   'Solar Light',
+  'TV',
+  'Microwave',
+  'Sound Systems',
 ];
 
 function formatKES(n: number) {
