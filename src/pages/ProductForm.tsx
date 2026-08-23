@@ -31,6 +31,9 @@ const categoryOptions = [
   'Furniture',
   'Beddings',
   'Solar Light',
+  'TV',
+  'Microwave',
+  'Sound Systems',
 ];
 
 interface ProductFormProps {
