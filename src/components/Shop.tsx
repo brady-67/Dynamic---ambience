@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Star, ShoppingBag, Loader2, SlidersHorizontal, Check } from 'lucide-react';
+import { Star, ShoppingBag, Loader2, SlidersHorizontal, Check, Search, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Product } from '@/lib/types';
 import { useReveal } from '@/lib/useReveal';
@@ -50,6 +50,7 @@ export default function Shop({ onAdd }: ShopProps) {
   const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState('All');
   const [added, setAdded] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -73,10 +74,19 @@ export default function Shop({ onAdd }: ShopProps) {
     };
   }, []);
 
-  const filtered = useMemo(
-    () => products.filter((p) => category === 'All' || p.category === category),
-    [products, category],
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchesCategory = category === 'All' || p.category === category;
+      const matchesQuery =
+        q === '' ||
+        p.name.toLowerCase().includes(q) ||
+        p.brand.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q);
+      return matchesCategory && matchesQuery;
+    });
+  }, [products, category, query]);
 
   const handleAdd = (p: Product) => {
     onAdd(p);
@@ -96,8 +106,33 @@ export default function Shop({ onAdd }: ShopProps) {
           </p>
         </div>
 
+        {/* Search */}
+        <div className={`mt-10 ${visible ? 'animate-fade-up [animation-delay:60ms] opacity-0' : 'reveal'}`}>
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search appliances, brands..."
+              aria-label="Search products"
+              className="w-full rounded-full bg-sand-50 py-3 pl-11 pr-10 text-sm text-ink-900 ring-1 ring-ink-200 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-clay-400"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Clear search"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-ink-400 hover:text-ink-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Filters */}
-        <div className={`mt-10 flex flex-wrap items-center gap-3 ${visible ? 'animate-fade-up [animation-delay:120ms] opacity-0' : 'reveal'}`}>
+        <div className={`mt-6 flex flex-wrap items-center gap-3 ${visible ? 'animate-fade-up [animation-delay:120ms] opacity-0' : 'reveal'}`}>
           <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-widest text-ink-500">
             <SlidersHorizontal className="h-4 w-4" /> Category
           </span>
@@ -125,7 +160,9 @@ export default function Shop({ onAdd }: ShopProps) {
           <div className="mt-14 rounded-2xl bg-clay-100 p-8 text-center text-clay-700">{error}</div>
         ) : filtered.length === 0 ? (
           <div className="mt-14 rounded-2xl bg-sand-50 p-12 text-center text-ink-500">
-            No products match those filters.
+            {query
+              ? `No products match "${query}"${category !== 'All' ? ` in ${category}` : ''}.`
+              : 'No products match those filters.'}
           </div>
         ) : (
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
