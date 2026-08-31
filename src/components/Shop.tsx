@@ -30,6 +30,13 @@ function formatKES(n: number) {
   return 'KSh ' + n.toLocaleString('en-KE');
 }
 
+function getSavings(p: Product) {
+  if (!p.old_price || p.old_price <= p.price) return null;
+  const amount = p.old_price - p.price;
+  const percent = Math.round((amount / p.old_price) * 100);
+  return { amount, percent };
+}
+
 function Stars({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -166,7 +173,9 @@ export default function Shop({ onAdd }: ShopProps) {
           </div>
         ) : (
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filtered.map((p, i) => (
+            {filtered.map((p, i) => {
+              const savings = getSavings(p);
+              return (
               <article
                 key={p.id}
                 className={`group flex flex-col overflow-hidden rounded-2xl bg-sand-50 ring-1 ring-ink-200/70 transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-ink-900/10 ${
@@ -191,6 +200,13 @@ export default function Shop({ onAdd }: ShopProps) {
                       </span>
                     )}
                   </div>
+                  {savings && (
+                    <div className="absolute right-3 top-3">
+                      <span className="rounded-full bg-sage-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-sand-50 shadow-sm">
+                        Save {savings.percent}%
+                      </span>
+                    </div>
+                  )}
                   {!p.in_stock && (
                     <div className="absolute inset-0 grid place-items-center bg-ink-950/40">
                       <span className="rounded-full bg-sand-50 px-4 py-1.5 text-xs font-semibold text-ink-800">
@@ -218,6 +234,11 @@ export default function Shop({ onAdd }: ShopProps) {
                       {p.old_price && (
                         <p className="text-sm text-ink-400 line-through">{formatKES(p.old_price)}</p>
                       )}
+                      {savings && (
+                        <p className="mt-1 text-xs font-semibold text-sage-600">
+                          You save {formatKES(savings.amount)}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <button
@@ -243,7 +264,8 @@ export default function Shop({ onAdd }: ShopProps) {
                   </button>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
