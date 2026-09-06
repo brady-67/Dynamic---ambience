@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const shortcode = requiredEnv('MPESA_SHORTCODE');
+    const shortcode = requiredEnv('MPESA_TILL_NUMBER');
     const passkey = requiredEnv('MPESA_PASSKEY');
     const callbackUrl = requiredEnv('MPESA_CALLBACK_URL');
     const accountReference = process.env.MPESA_ACCOUNT_REFERENCE || 'Dynamic Ambience';
@@ -54,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         BusinessShortCode: shortcode,
         Password: password,
         Timestamp: timestamp,
-        TransactionType: 'CustomerPayBillOnline',
+        TransactionType: 'CustomerBuyGoodsOnline',
         Amount: amount,
         PartyA: phone,
         PartyB: shortcode,
