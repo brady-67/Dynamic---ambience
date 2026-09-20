@@ -35,13 +35,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    const shortcode = requiredEnv('MPESA_TILL_NUMBER');
+    // Buy Goods: BusinessShortCode + passkey belong to the STORE (head office)
+    // shortcode, while PartyB is the customer-facing Till Number.
+    const storeShortcode = requiredEnv('MPESA_STORE_SHORTCODE');
+    const tillNumber = process.env.MPESA_TILL_NUMBER || storeShortcode;
     const passkey = requiredEnv('MPESA_PASSKEY');
     const callbackUrl = requiredEnv('MPESA_CALLBACK_URL');
     const accountReference = process.env.MPESA_ACCOUNT_REFERENCE || 'Dynamic Ambience';
 
     const timestamp = darajaTimestamp();
-    const password = darajaPassword(shortcode, passkey, timestamp);
+    const password = darajaPassword(storeShortcode, passkey, timestamp);
     const accessToken = await getDarajaAccessToken();
 
     const stkRes = await fetch(`${DARAJA_BASE_URL}/mpesa/stkpush/v1/processrequest`, {
@@ -51,13 +54,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        BusinessShortCode: shortcode,
+        BusinessShortCode: storeShortcode,
         Password: password,
         Timestamp: timestamp,
         TransactionType: 'CustomerBuyGoodsOnline',
         Amount: amount,
         PartyA: phone,
-        PartyB: shortcode,
+        PartyB: tillNumber,
         PhoneNumber: phone,
         CallBackURL: callbackUrl,
         AccountReference: accountReference,
