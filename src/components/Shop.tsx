@@ -188,6 +188,7 @@ export default function Shop({ onAdd }: ShopProps) {
                     src={p.image_url}
                     alt={p.name}
                     loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                   <div className="absolute left-3 top-3 flex gap-2">
