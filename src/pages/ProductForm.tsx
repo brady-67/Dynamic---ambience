@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ImagePlus, Loader2, Save, Trash2, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { compressImage } from '@/lib/compressImage';
 import type { Product } from '@/lib/types';
 
 export type ProductDraft = Omit<Product, 'id'> & { id?: string };
@@ -85,11 +86,23 @@ export default function ProductForm({
     }
     setUploadError(null);
     setUploading(true);
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = `${crypto.randomUUID()}.${ext}`;
+    let compressed;
+    try {
+      compressed = await compressImage(file);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Could not process image');
+      setUploading(false);
+      return;
+    }
+    const path = `${crypto.randomUUID()}.${compressed.ext}`;
+    // Filenames are random UUIDs and never overwritten, so a 1-year cache is safe.
     const { error: uploadErr } = await supabase.storage
       .from('product-images')
-      .upload(path, file, { cacheControl: '3600', upsert: false });
+      .upload(path, compressed.blob, {
+        cacheControl: '31536000',
+        contentType: compressed.type,
+        upsert: false,
+      });
     if (uploadErr) {
       setUploadError(uploadErr.message);
       setUploading(false);
