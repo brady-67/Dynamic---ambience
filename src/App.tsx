@@ -9,6 +9,7 @@ import Testimonials from '@/components/Testimonials';
 import Contact from '@/components/Contact';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import type { CartItem, Product } from '@/lib/types';
 
 export default function App() {
@@ -56,6 +57,7 @@ export default function App() {
         <Contact />
       </main>
       <Footer />
+      <WhatsAppButton />
       <CartDrawer
         open={cartOpen}
         items={cart}
